@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class VehicleRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'user_id' => 'required|exists:users,id',
+            'brand' => 'required|string',
+            'model' => 'required|string',
+            'body_type' => 'required|string',
+            'engine_type' => 'required|string',
+            'transmission' => 'required|string',
+            'chassis_number' => 'required|string',
+            'plate_number' => 'required|string|unique:vehicles,plate_number',
+            'status' => 'required|string',
+            'service_ids' => 'nullable|array',
+            'service_ids.*' => 'exists:services,id',
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'user_id.required' => 'User ID is required',
+            'brand.required' => 'Brand is required',
+            'model.required' => 'Model is required',
+            'body_type.required' => 'Body type is required',
+            'engine_type.required' => 'Engine type is required',
+            'transmission.required' => 'Transmission is required',
+            'chassis_number.required' => 'Chassis number is required',
+            'plate_number.required' => 'Plate number is required',
+            'status.required' => 'Status is required',
+        ];
+    }
+}
