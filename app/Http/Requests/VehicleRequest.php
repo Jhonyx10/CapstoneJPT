@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\VehicleStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class VehicleRequest extends FormRequest
 {
@@ -31,8 +33,16 @@ class VehicleRequest extends FormRequest
             'transmission' => 'required|string',
             'chassis_number' => 'required|string',
             'plate_number' => 'required|string|unique:vehicles,plate_number',
-            'status' => 'required|string',
-            'service_ids' => 'nullable|array',
+            'image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
+            'status' => [
+                'required',
+                Rule::enum(VehicleStatus::class)->only(VehicleStatus::registrationOptions()),
+            ],
+            'service_ids' => [
+                'nullable',
+                'array',
+                Rule::prohibitedIf(fn () => $this->input('status') !== VehicleStatus::ForRepair->value),
+            ],
             'service_ids.*' => 'exists:services,id',
         ];
     }
@@ -49,6 +59,7 @@ class VehicleRequest extends FormRequest
             'chassis_number.required' => 'Chassis number is required',
             'plate_number.required' => 'Plate number is required',
             'status.required' => 'Status is required',
+            'status.Illuminate\Validation\Rules\Enum' => 'Status must be either for_repair or for_sale when registering a vehicle',
         ];
     }
 }

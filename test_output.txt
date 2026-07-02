@@ -1,0 +1,7 @@
+﻿
+   PASS  Tests\Feature\AssignWorkerTest
+  Γ£ô assigns mulΓÇª 2.60s  
+
+  Tests:    1 passed (9 assertions)
+  Duration: 2.98s
+

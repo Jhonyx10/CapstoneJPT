@@ -22,7 +22,7 @@ class RepairJob extends Model
     {
         return $this->belongsToMany(Service::class, 'repair_job_services')
                     ->using(RepairJobService::class)
-                    ->withPivot('id', 'worker_id', 'status', 'actual_price')
+                    ->withPivot('id', 'status', 'actual_price')
                     ->withTimestamps();
     }
 

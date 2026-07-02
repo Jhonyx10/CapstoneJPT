@@ -15,7 +15,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('name'); // e.g., "Full Body Paint", "Dent Removal"
                 $table->decimal('base_price', 10, 2);
-                $table->foreignId('worker_type')->constrained('roles')->onDelete('restrict'); // Linked directly to role id
+                $table->foreignId('worker_type')->constrained('worker_types')->onDelete('restrict'); // Linked directly to role id
                 $table->timestamps();
             });
     }

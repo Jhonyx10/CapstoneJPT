@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\VehicleStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Vehicle extends Model
@@ -10,8 +11,21 @@ class Vehicle extends Model
 
     protected $fillable = [
         'user_id', 'brand', 'model', 'body_type', 'engine_type', 'transmission',
-        'chassis_number', 'plate_number', 'status'
+        'chassis_number', 'plate_number', 'image', 'status', 'price',
     ];
+
+    protected $casts = [
+        'status' => VehicleStatus::class,
+    ];
+
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 
     public function customer()
     {

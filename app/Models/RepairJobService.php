@@ -8,6 +8,8 @@ class RepairJobService extends Pivot
 {
     protected $table = 'repair_job_services';
 
+    public $incrementing = true;
+
     protected $fillable = [
         'repair_job_id',
         'service_id',
@@ -29,13 +31,17 @@ class RepairJobService extends Pivot
     }
 
     // Identifies the unique assigned worker performing this checklist line-item
-    public function worker()
+    public function workers()
     {
-        return $this->belongsTo(User::class, 'worker_id');
+        return $this->belongsToMany(User::class, 'repair_job_service_workers', 'repair_job_service_id', 'worker_id')
+                    ->withPivot('id', 'assigned_at')
+                    ->withTimestamps();
     }
 
+    // Keep this if you sometimes want the raw assignment rows (with assigned_at, etc.) rather than just the User models
     public function assignments()
     {
         return $this->hasMany(RepairJobServiceWorker::class, 'repair_job_service_id');
     }
+    
 }

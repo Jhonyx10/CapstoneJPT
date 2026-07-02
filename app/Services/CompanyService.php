@@ -7,14 +7,14 @@ use App\Models\Service;
 class CompanyService
 {
     public function getAll() {
-        return Service::all();
+        return Service::with('requiredWorkerType.users')->get();
     }
 
     public function storeService($data) {
         return Service::create($data);
     }
 
-    public function updateService($data, $id) {
+        public function updateService($data, $id) {
         $service = Service::find($id);
         $service->update($data);
         return $service;

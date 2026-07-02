@@ -23,7 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role_id'
+        'role',
+        'worker_type_id'
     ];
 
     /**
@@ -49,9 +50,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function role()
+    public function workerType()
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsTo(WorkerType::class);
     }
 
     // If user is a customer, they can own multiple vehicles
@@ -60,11 +61,11 @@ class User extends Authenticatable
         return $this->hasMany(Vehicle::class, 'customer_id');
     }
 
-    // If user is a worker, they can be assigned to multiple active tasks on vehicles
-    public function assignedServices()
+    // A worker can be assigned to multiple service line items across jobs
+    public function assignedServiceLines()
     {
-        return $this->belongsToMany(RepairJob::class, 'repair_job_service', 'worker_id', 'repair_job_id')
-                    ->withPivot('status', 'actual_price')
+        return $this->belongsToMany(RepairJobService::class, 'repair_job_service_workers', 'worker_id', 'repair_job_service_id')
+                    ->withPivot('id', 'assigned_at')
                     ->withTimestamps();
     }
 }

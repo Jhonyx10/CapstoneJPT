@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\WorkerType;
 use Illuminate\Support\Facades\Hash;
 
 class UserService
@@ -15,6 +16,11 @@ class UserService
 
     public function getAll()
     {
-        return User::whereNotIn('role_id', [1,4])->get();
+        return User::where('role','worker')->with('workerType')->get();
+    }
+
+    public function getWorkerTypes()
+    {
+        return WorkerType::all();
     }
 }

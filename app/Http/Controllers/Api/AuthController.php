@@ -21,7 +21,6 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'role_id' => 'required|integer|exists:roles,id',
         ]);
 
         $user = $this->userService->create($validated);
@@ -50,6 +49,7 @@ class AuthController extends Controller
 
         $user = $request->user();
         $token = $user->createToken('auth_token')->plainTextToken;
+        $user->load('workerType');
 
         return response()->json([
             'access_token' => $token,

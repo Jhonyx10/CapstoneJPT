@@ -25,7 +25,8 @@ class UserController extends Controller
             'name' => 'required',
             'email' => 'required|email',
             'password' => 'required',
-            'role_id' => 'required',
+            'role' => 'required|string',
+            'worker_type_id' => 'nullable|exists:worker_types,id',
         ]);
 
         if ($validator->fails()) {
@@ -44,5 +45,10 @@ class UserController extends Controller
     public function destroy($id) {
         $user = $this->userService->delete($id);
         return response()->json($user);
+    }
+
+    public function getWorkerTypes() {
+        $workerTypes = $this->userService->getWorkerTypes();
+        return response()->json($workerTypes);
     }
 }

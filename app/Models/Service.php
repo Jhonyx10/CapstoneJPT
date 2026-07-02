@@ -12,9 +12,14 @@ class Service extends Model
         'name', 'worker_type', 'base_price'
     ];
 
-    public function requiredRole()
+    public function requiredWorkerType()
     {
-        return $this->belongsTo(Role::class, 'worker_type');
+        return $this->belongsTo(WorkerType::class, 'worker_type');
+    }
+
+    public function workers()
+    {
+        return $this->belongsToMany(User::class, 'repair_job_service_workers', 'repair_job_service_id', 'worker_id');
     }
 
     // A service can be linked to multiple ongoing repair jobs across the shop
