@@ -23,6 +23,7 @@ class RepairJobService
             ->whereHas('vehicle', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
+            ->orderByDesc('created_at')
             ->get();
         }
     

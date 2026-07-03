@@ -25,7 +25,6 @@ class VehicleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
             'brand' => 'required|string',
             'model' => 'required|string',
             'body_type' => 'required|string',

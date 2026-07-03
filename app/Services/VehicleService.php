@@ -8,6 +8,7 @@ use App\Models\Service as ServiceModel;
 use App\Enums\VehicleStatus;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Enums\RepairJobStatus;
 use App\Enums\InvoiceType;
@@ -40,6 +41,8 @@ class VehicleService
                 'vehicle_id' => $vehicle->id,
                 'status'     => RepairJobStatus::Pending,
             ]);
+
+            \Log::info('service_ids received:', ['data' => $data['service_ids'] ?? 'NOT SET']);
 
             $totalServicesCost = 0.00;
             if (!empty($data['service_ids'])) {
