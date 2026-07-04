@@ -27,6 +27,7 @@ class UserController extends Controller
             'password' => 'required',
             'role' => 'required|string',
             'worker_type_id' => 'nullable|exists:worker_types,id',
+            'worker_type' => 'nullable|exists:worker_types,id',
         ]);
 
         if ($validator->fails()) {
@@ -50,5 +51,18 @@ class UserController extends Controller
     public function getWorkerTypes() {
         $workerTypes = $this->userService->getWorkerTypes();
         return response()->json($workerTypes);
+    }
+
+    public function createWorkerType(Request $request){
+        $validator = Validator::make($request->all(),[
+            'name'=>'required|string'
+        ]);
+
+          if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $workerType = $this->userService->createWorkerType($request->all());
+        return response()->json($workerType);
     }
 }

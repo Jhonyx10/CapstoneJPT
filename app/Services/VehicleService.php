@@ -82,6 +82,11 @@ class VehicleService
         return Vehicle::latest()->paginate(6);
     }
 
+    public function getVehicleId($id)
+    {
+        return Vehicle::find($id);
+    }
+
     public function update($data, $id)
     {
         $vehicle = Vehicle::findOrFail($id);

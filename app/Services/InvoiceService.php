@@ -2,35 +2,35 @@
 
 namespace App\Services;
 
-use App\Models\Invoices;
+use App\Models\Invoice;
 
 class InvoiceService
 {
     public function getAll()
     {
-        return Invoices::all();
+        return Invoice::all();
     }
 
     public function getById($id)
     {
-        return Invoices::find($id);
+        return Invoice::find($id);
     }
 
     public function create($data)
     {
-        return Invoices::create($data);
+        return Invoice::create($data);
     }
 
     public function update($data, $id)
     {
-        $invoice = Invoices::find($id);
+        $invoice = Invoice::find($id);
         $invoice->update($data);
         return $invoice;
     }
 
     public function delete($id)
     {
-        $invoice = Invoices::find($id);
+        $invoice = Invoice::find($id);
         $invoice->delete();
         return $invoice;
     }

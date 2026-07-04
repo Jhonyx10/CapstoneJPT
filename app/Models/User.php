@@ -68,4 +68,9 @@ class User extends Authenticatable
                     ->withPivot('id', 'assigned_at')
                     ->withTimestamps();
     }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'customer_id');
+    }
 }

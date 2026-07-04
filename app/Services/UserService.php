@@ -10,6 +10,10 @@ class UserService
 {
     public function create($data)
     {
+        if (! isset($data['worker_type_id']) && isset($data['worker_type'])) {
+            $data['worker_type_id'] = $data['worker_type'];
+        }
+
         $data['password'] = Hash::make($data['password']);
         return User::create($data);
     }
@@ -22,5 +26,9 @@ class UserService
     public function getWorkerTypes()
     {
         return WorkerType::all();
+    }
+
+    public function createWorkerType($data) {
+        return WorkerType::create($data);
     }
 }

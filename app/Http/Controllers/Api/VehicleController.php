@@ -32,6 +32,11 @@ class VehicleController extends Controller
         return response()->json($vehicle);
     }
 
+    public function show($id) {
+        $vehicle = $this->vehicleService->getVehicleId($id);
+        return response()->json($vehicle);
+    }
+
     public function destroy($id) {
         $vehicle = $this->vehicleService->delete($id);
         return response()->json($vehicle);

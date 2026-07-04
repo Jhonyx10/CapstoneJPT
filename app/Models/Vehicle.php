@@ -29,12 +29,22 @@ class Vehicle extends Model
 
     public function customer()
     {
-        return $this->belongsTo(User::class, 'customer_id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     // A vehicle can undergo multiple repair jobs over its lifetime
     public function repairJobs()
     {
         return $this->hasMany(RepairJob::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 }

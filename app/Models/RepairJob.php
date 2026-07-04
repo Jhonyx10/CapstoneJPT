@@ -35,6 +35,6 @@ class RepairJob extends Model
     // A job can only generate one single bill/invoice
     public function invoice()
     {
-        return $this->hasOne(Invoices::class, 'repair_job_id');
+        return $this->hasOne(Invoice::class, 'repair_job_id');
     }
 }
