@@ -29,7 +29,7 @@ class RepairJob extends Model
     // A job has a historical timeline log tracking status shifts
     public function logs()
     {
-        return $this->hasMany(RepairJobLog::class);
+        return $this->hasMany(RepairJobLog::class, 'repair_id');
     }
 
     // A job can only generate one single bill/invoice

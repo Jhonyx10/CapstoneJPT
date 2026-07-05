@@ -23,6 +23,11 @@ class RepairJobController extends Controller
         return response()->json($this->repairJobService->getRepairJobs());
     }
 
+    public function getRepairHistory()
+    {
+        return response()->json($this->repairJobService->getRepairHistory());
+    }
+
     public function getCustomerRepairJobs(Request $request)
     {
         return response()->json($this->repairJobService->getCustomerRepairJobs($request->user()->id));

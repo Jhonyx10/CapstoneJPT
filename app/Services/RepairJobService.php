@@ -13,8 +13,28 @@ class RepairJobService
 
     public function getRepairJobs() {
         return RepairJob::with('vehicle', 'services.requiredWorkerType', 'services.workers', 'invoice')
-                        ->whereNotIn('status', [RepairJobStatus::Pending])
+                        ->whereNotIn('status', [
+                            RepairJobStatus::Pending,
+                            RepairJobStatus::Completed,
+                            RepairJobStatus::Cancelled,
+                        ])
                         ->get();
+    }
+
+    public function getRepairHistory()
+    {
+        return RepairJob::with([
+            'vehicle',
+            'services.workers',
+            'invoice',
+            'logs.operator',
+        ])
+            ->whereIn('status', [
+                RepairJobStatus::Completed->value,
+                RepairJobStatus::Cancelled->value,
+            ])
+            ->orderByRaw('COALESCE(end_date, updated_at) DESC')
+            ->get();
     }
 
     public function getCustomerRepairJobs($userId)  

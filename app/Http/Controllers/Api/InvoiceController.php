@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\InvoiceService;
+use App\Http\Requests\StoreSupplementalInvoiceRequest;
 
 class InvoiceController extends Controller
 {
@@ -25,9 +26,15 @@ class InvoiceController extends Controller
         return $this->invoiceService->getById($id);
     }
 
-    public function store(Request $request)
+    public function store(StoreSupplementalInvoiceRequest $request)
     {
-        return $this->invoiceService->create($request->all());
+        $invoice = $this->invoiceService->create($request->validated());
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Additional invoice created successfully',
+            'data' => $invoice->load(['parent', 'children']),
+        ], 201);
     }
 
     public function update(Request $request, $id)

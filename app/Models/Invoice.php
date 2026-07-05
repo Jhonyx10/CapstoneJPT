@@ -38,7 +38,19 @@ class Invoice extends Model
     }
 
     public function booking()
-{
-    return $this->belongsTo(Booking::class);
-}
+    {
+        return $this->belongsTo(Booking::class);
+    }
+
+    /** Original invoice this supplemental/add-on bill is linked to */
+    public function parent()
+    {
+        return $this->belongsTo(Invoice::class, 'parent_id');
+    }
+
+    /** Additional invoices created for extra work discovered during repair */
+    public function children()
+    {
+        return $this->hasMany(Invoice::class, 'parent_id');
+    }
 }
