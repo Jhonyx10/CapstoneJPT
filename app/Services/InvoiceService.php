@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use Illuminate\Support\Str;
+use App\Enums\InvoiceStatus;
 
 class InvoiceService
 {
@@ -61,7 +62,7 @@ class InvoiceService
             'tax' => $tax,
             'total_amount' => $total,
             'amount_due' => $total,
-            'status' => 'unpaid',
+            'status' => InvoiceStatus::UNPAID,
             'notes' => $data['notes'] ?? null,
         ]);
     }
