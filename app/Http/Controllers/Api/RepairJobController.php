@@ -33,9 +33,67 @@ class RepairJobController extends Controller
         return response()->json($this->repairJobService->getCustomerRepairJobs($request->user()->id));
     }
 
+    public function getWorkerRepairJobs(Request $request, $id)
+    {
+        if ((int) $id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        return response()->json($this->repairJobService->getWorkerRepairJobs((int) $id));
+    }
+
+    public function getWorkerDashboard(Request $request, $id)
+    {
+        if ((int) $id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        return response()->json($this->repairJobService->getWorkerDashboard((int) $id));
+    }
+
     public function getRepairJob($id)
     {
         return response()->json($this->repairJobService->getRepairJob($id));
+    }
+
+    public function startServiceWork(Request $request, $repairJobId, $repairJobServiceId)
+    {
+        try {
+            $repairJob = $this->repairJobService->startServiceWork(
+                $request->user()->id,
+                (int) $repairJobId,
+                (int) $repairJobServiceId
+            );
+
+            return response()->json($repairJob);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    public function completeServiceWork(Request $request, $repairJobId, $repairJobServiceId)
+    {
+        try {
+            $repairJob = $this->repairJobService->completeServiceWork(
+                $request->user()->id,
+                (int) $repairJobId,
+                (int) $repairJobServiceId
+            );
+
+            return response()->json($repairJob);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
     }
 
 }

@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Payment\PayMongoController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\BookingController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -43,13 +44,20 @@ Route::middleware(['auth:sanctum', 'web.token'])->group(function () {
     Route::resource('/invoices', InvoiceController::class);
     Route::resource('/categories', CategoryController::class);
     Route::resource('/transactions', TransactionController::class);
+    Route::resource('/bookings', BookingController::class);
 
+    Route::get('/bookings/customer/{id}', [BookingController::class, 'getCustomerBookings']);
+    Route::get('/repair-jobs/customer/{id}', [RepairJobController::class, 'getCustomerRepairJobs']);
+    Route::get('/repair-jobs/worker/{id}', [RepairJobController::class, 'getWorkerRepairJobs']);
+    Route::get('/repair-jobs/worker/{id}/dashboard', [RepairJobController::class, 'getWorkerDashboard']);
+    Route::get('/repair-jobs/{id}', [RepairJobController::class, 'getRepairJob']);
+    Route::patch('/repair-jobs/{repairJobId}/services/{repairJobServiceId}/start', [RepairJobController::class, 'startServiceWork']);
+    Route::patch('/repair-jobs/{repairJobId}/services/{repairJobServiceId}/complete', [RepairJobController::class, 'completeServiceWork']);
+    
     Route::get('/workers', [AssignWorkerController::class, 'getWorkers']);
     Route::get('/repair-jobs', [RepairJobController::class, 'index']);
     Route::get('/repair-jobs/repair', [RepairJobController::class, 'getRepairJobs']);
     Route::get('/repair-jobs/history', [RepairJobController::class, 'getRepairHistory']);
-    Route::get('/repair-jobs/customer/{id}', [RepairJobController::class, 'getCustomerRepairJobs']);
-    Route::get('/repair-jobs/{id}', [RepairJobController::class, 'getRepairJob']);
     Route::get('/inventory/logs', [InventoryController::class, 'getInventoryLogs']);
     Route::get('/worker-types', [UserController::class, 'getWorkerTypes']);
     
