@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\AuthService;
 use App\Services\UserService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    protected $userService;
-
-    public function __construct(UserService $userService)
-    {
-        $this->userService = $userService;
+    public function __construct(
+        private UserService $userService,
+        private AuthService $authService,
+    ) {
     }
 
     public function register(Request $request)
@@ -25,12 +25,12 @@ class AuthController extends Controller
 
         $user = $this->userService->create($validated);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken(AuthService::MOBILE_TOKEN_NAME)->plainTextToken;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -39,22 +39,47 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
+            'client' => 'nullable|string|in:web,mobile',
         ]);
 
-        if (!auth()->attempt($validated)) {
+        if (!auth()->attempt([
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ])) {
             return response()->json([
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
         $user = $request->user();
-        $token = $user->createToken('auth_token')->plainTextToken;
         $user->load('workerType');
+        $client = $validated['client'] ?? 'mobile';
+
+        if ($client === 'web') {
+            if (!$this->authService->isWebAdmin($user)) {
+                auth()->logout();
+
+                return response()->json([
+                    'message' => 'Only administrators can access the web dashboard.',
+                ], 403);
+            }
+
+            $token = $this->authService->issueWebToken($user);
+
+            return response()->json([
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user,
+                'message' => 'Signed in. Any other active web session has been ended.',
+            ]);
+        }
+
+        $token = $this->authService->issueMobileToken($user);
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
