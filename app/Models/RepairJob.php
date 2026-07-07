@@ -26,6 +26,11 @@ class RepairJob extends Model
                     ->withTimestamps();
     }
 
+    public function repairJobServices()
+    {
+        return $this->hasMany(RepairJobService::class, 'repair_job_id');
+    }
+
     // A job has a historical timeline log tracking status shifts
     public function logs()
     {
@@ -36,5 +41,10 @@ class RepairJob extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'repair_job_id');
+    }
+
+    public function rating()
+    {
+        return $this->hasOne(Rating::class, 'repair_id');
     }
 }

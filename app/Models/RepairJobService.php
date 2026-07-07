@@ -22,6 +22,11 @@ class RepairJobService extends Pivot
         return $this->belongsTo(RepairJob::class, 'repair_job_id');
     }
 
+    public function items()
+    {
+        return $this->hasMany(RepairJobServiceItem::class, 'repair_job_service_id');
+    }
+
     // Connects the pivot instance directly to the specific service meta description
     public function service()
    {

@@ -50,7 +50,11 @@ class UserController extends Controller
 
     public function getWorkerTypes() {
         $workerTypes = $this->userService->getWorkerTypes();
-        return response()->json($workerTypes);
+        return response()->json([
+        'status' => 'success',
+        'message' => 'Worker types retrieved successfully',
+        'data' => $workerTypes,
+    ]);
     }
 
     public function createWorkerType(Request $request){

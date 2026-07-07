@@ -7,7 +7,7 @@ use App\Models\Service;
 class CompanyService
 {
     public function getAll() {
-        return Service::with('requiredWorkerType.users')->get();
+        return Service::with('requiredWorkerType.users','itemCategory.inventories')->get();
     }
 
     public function storeService($data) {

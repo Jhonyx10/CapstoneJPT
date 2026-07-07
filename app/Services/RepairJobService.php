@@ -18,20 +18,22 @@ class RepairJobService
     }
 
     public function getRepairJobs() {
-        return RepairJob::with('vehicle', 'services.requiredWorkerType', 'services.workers', 'invoice')
+        $jobs = RepairJob::with('vehicle', 'services.requiredWorkerType', 'invoice')
                         ->whereNotIn('status', [
                             RepairJobStatus::Pending,
                             RepairJobStatus::Completed,
                             RepairJobStatus::Cancelled,
                         ])
                         ->get();
+        $this->hydrateServiceWorkers($jobs);
+        return $jobs;
     }
 
     public function getRepairHistory()
     {
-        return RepairJob::with([
+        $jobs = RepairJob::with([
             'vehicle',
-            'services.workers',
+            'services.requiredWorkerType',
             'invoice',
             'logs.operator',
         ])
@@ -41,22 +43,26 @@ class RepairJobService
             ])
             ->orderByRaw('COALESCE(end_date, updated_at) DESC')
             ->get();
+        $this->hydrateServiceWorkers($jobs);
+        return $jobs;
     }
 
     public function getCustomerRepairJobs($userId)  
     {
-        return RepairJob::with('vehicle')
+        $jobs = RepairJob::with(['vehicle', 'services', 'invoice', 'rating'])
             ->whereHas('vehicle', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
             ->orderByDesc('created_at')
             ->get();
-        }
+        $this->hydrateServiceWorkers($jobs);
+        return $jobs;
+    }
 
     public function getWorkerRepairJobs(int $workerId)
     {
-        return RepairJob::with('vehicle.user', 'services.requiredWorkerType', 'services.workers', 'invoice')
-            ->whereHas('services.workers', function ($query) use ($workerId) {
+        $jobs = RepairJob::with('vehicle.user', 'services.requiredWorkerType', 'invoice')
+            ->whereHas('repairJobServices.workers', function ($query) use ($workerId) {
                 $query->where('users.id', $workerId);
             })
             ->whereNotIn('status', [
@@ -65,16 +71,20 @@ class RepairJobService
             ])
             ->orderByDesc('updated_at')
             ->get();
+        $this->hydrateServiceWorkers($jobs);
+        return $jobs;
     }
 
     public function getWorkerDashboard(int $workerId): array
     {
-        $jobs = RepairJob::with(['services.workers'])
-            ->whereHas('services.workers', function ($query) use ($workerId) {
+        $jobs = RepairJob::with(['services'])
+            ->whereHas('repairJobServices.workers', function ($query) use ($workerId) {
                 $query->where('users.id', $workerId);
             })
             ->where('status', '!=', RepairJobStatus::Cancelled->value)
             ->get();
+        
+        $this->hydrateServiceWorkers($jobs);
 
         $statusLabels = [
             RepairJobStatus::Confirmed->value => 'Confirmed',
@@ -146,12 +156,55 @@ class RepairJobService
     
     public function getRepairJob($id)
     {
-        return RepairJob::with(
+        $job = RepairJob::with([
             'vehicle.user',
             'services.requiredWorkerType',
-            'services.workers',
-            'invoice'
-        )->find($id);
+            'invoice',
+            'rating',
+            'repairJobServices.items.inventory'
+        ])->find($id);
+        
+        $this->hydrateServiceWorkers($job);
+        
+        return $job;
+    }
+
+    private function hydrateServiceWorkers($jobs)
+    {
+        if (!$jobs || (is_iterable($jobs) && $jobs->isEmpty())) {
+            return;
+        }
+
+        $iterableJobs = is_iterable($jobs) ? $jobs : [$jobs];
+        $pivotIds = [];
+
+        foreach ($iterableJobs as $job) {
+            foreach ($job->services as $service) {
+                if ($service->pivot) {
+                    $pivotIds[] = $service->pivot->id;
+                }
+            }
+        }
+
+        if (empty($pivotIds)) {
+            return;
+        }
+
+        $workers = \App\Models\RepairJobServiceWorker::with('worker')
+            ->whereIn('repair_job_service_id', $pivotIds)
+            ->get()
+            ->groupBy('repair_job_service_id');
+
+        foreach ($iterableJobs as $job) {
+            foreach ($job->services as $service) {
+                if ($service->pivot && isset($workers[$service->pivot->id])) {
+                    $serviceWorkers = $workers[$service->pivot->id]->pluck('worker')->filter();
+                    $service->setRelation('workers', $serviceWorkers);
+                } else {
+                    $service->setRelation('workers', collect());
+                }
+            }
+        }
     }
 
     public function startServiceWork(int $workerId, int $repairJobId, int $repairJobServiceId)

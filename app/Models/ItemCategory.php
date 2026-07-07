@@ -17,7 +17,12 @@ class ItemCategory extends Model
 
     public function inventories()
     {
-        return $this->hasMany(Inventory::class);
+        return $this->hasMany(Inventory::class, 'category_id');
+    }
+
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'item_category_id');
     }
 
     protected static function boot()

@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\RepairJobService;
+use App\Services\RatingService;
+use App\Http\Requests\RatingRequest;
 
 class RepairJobController extends Controller
 {
     protected $repairJobService;
+    protected $ratingService;
 
-    public function __construct(RepairJobService $repairJobService) {
+    public function __construct(RepairJobService $repairJobService, RatingService $ratingService) {
         $this->repairJobService = $repairJobService;
+        $this->ratingService = $ratingService;
     }
 
     public function index() {
@@ -86,6 +90,22 @@ class RepairJobController extends Controller
             );
 
             return response()->json($repairJob);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    public function rateService(RatingRequest $request)
+    {
+        try {
+            $rating = $this->ratingService->storeRating($request->validated(), $request->user());
+
+            return response()->json($rating, 201);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             return response()->json(['message' => $e->getMessage()], 403);
         } catch (\Illuminate\Validation\ValidationException $e) {

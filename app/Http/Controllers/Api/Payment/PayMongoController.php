@@ -21,14 +21,21 @@ class PayMongoController extends Controller
     {
         $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
-            'government_id' => 'required|string',
+            'government_id' => 'required',
         ]);
+
+        $governmentIdPath = '';
+        if ($request->hasFile('government_id')) {
+            $governmentIdPath = $request->file('government_id')->store('government_ids', 'public');
+        } elseif (is_string($request->government_id)) {
+            $governmentIdPath = $request->government_id;
+        }
 
         $booking = Booking::create([
             'customer_id' => auth()->id() ?? 1,
             'vehicle_id' => $request->vehicle_id,
             'status' => 'pending_payment',
-            'government_id_path' => $request->government_id,
+            'government_id_path' => $governmentIdPath,
             'reservation_fee' => 5000.00,
             'expires_at' => now()->addHours(48),
         ]);

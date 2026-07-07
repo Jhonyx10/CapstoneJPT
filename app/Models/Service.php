@@ -9,12 +9,17 @@ class Service extends Model
     protected $table = 'services';
 
     protected $fillable = [
-        'name', 'worker_type', 'base_price'
+        'name', 'worker_type', 'base_price', 'item_category_id'
     ];
 
     public function requiredWorkerType()
     {
         return $this->belongsTo(WorkerType::class, 'worker_type');
+    }
+
+    public function itemCategory()
+    {
+        return $this->belongsTo(ItemCategory::class, 'item_category_id');
     }
 
     public function workers()

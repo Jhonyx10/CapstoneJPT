@@ -43,6 +43,13 @@ class VehicleRequest extends FormRequest
                 Rule::prohibitedIf(fn () => $this->input('status') !== VehicleStatus::ForRepair->value),
             ],
             'service_ids.*' => 'exists:services,id',
+            'service_items' => [
+                'nullable',
+                'array',
+                Rule::prohibitedIf(fn () => $this->input('status') !== VehicleStatus::ForRepair->value),
+            ],
+            'service_items.*' => 'array',
+            'service_items.*.*' => 'exists:inventories,id',
         ];
     }
 
