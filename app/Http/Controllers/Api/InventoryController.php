@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\InventoryService;
 use App\Http\Requests\InventoryRequest;
+use App\Http\Requests\RestockRequest;
+use App\Http\Requests\WorkerItemRepairRequest;
 
 class InventoryController extends Controller
 {
@@ -62,6 +64,25 @@ class InventoryController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Inventory deleted successfully',
+        ]);
+    }
+
+    public function restock(RestockRequest $request)
+    {
+        $this->inventoryService->itemRestock($request->validated());
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Inventory restocked successfully',
+        ]);
+    }
+
+    public function workerItemsRepairLog(WorkerItemRepairRequest $request)
+    {
+        $supplemental = $this->inventoryService->workerItemsRepairLog($request->validated());
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Worker items repair log created successfully',
+            'data' => $supplemental,
         ]);
     }
 

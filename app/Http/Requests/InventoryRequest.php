@@ -29,6 +29,7 @@ class InventoryRequest extends FormRequest
             'min_stock_alert' => 'required|integer|min:0',
             'unit' => 'required|string|max:50',
             'unit_price' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:255',
         ];
     }
 
@@ -48,6 +49,8 @@ class InventoryRequest extends FormRequest
             'unit_price.required' => 'The unit price field is required.',
             'unit_price.numeric' => 'The unit price must be a number.',
             'unit_price.min' => 'The unit price must be at least 0.',
+            'notes.string' => 'The notes must be a string.',
+            'notes.max' => 'The notes must be at most 255 characters.',
         ];
     }
 }

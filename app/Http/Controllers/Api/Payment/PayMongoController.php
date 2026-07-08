@@ -213,6 +213,103 @@ class PayMongoController extends Controller
         ]);
     }
 
+    public function createRepairFinalPaymentCheckout(Request $request)
+    {
+        $request->validate([
+            'repair_job_id' => 'required|exists:repair_jobs,id',
+        ]);
+
+        $repairJob = RepairJob::with(['invoice', 'vehicle'])->findOrFail($request->repair_job_id);
+
+        if ($repairJob->vehicle->user_id !== auth()->id()) {
+            return response()->json(['error' => 'You are not authorized to pay for this repair job.'], 403);
+        }
+
+        if ($repairJob->status !== RepairJobStatus::Completed->value) {
+            return response()->json(['error' => 'This repair job must be completed before the final payment can be made.'], 422);
+        }
+
+        $invoice = $repairJob->invoice;
+
+        if (!$invoice) {
+            return response()->json(['error' => 'No invoice found for this repair job.'], 404);
+        }
+
+        if ($invoice->status === 'paid') {
+            return response()->json(['error' => 'This invoice has already been paid in full.'], 422);
+        }
+
+        $amountDue = round((float) $invoice->amount_due, 2);
+        $amountInCents = (int) round($amountDue * 100);
+
+        if ($amountInCents < 100) {
+            return response()->json(['error' => 'Amount due is too small to process.'], 422);
+        }
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode(config('services.paymongo.secret') . ':'),
+        ])->post('https://api.paymongo.com/v1/checkout_sessions', [
+            'data' => [
+                'attributes' => [
+                    'cancel_url' => 'https://yourdomain.com/payment/cancel',
+                    'success_url' => 'https://yourdomain.com/payment/success',
+                    'line_items' => [
+                        [
+                            'amount' => $amountInCents,
+                            'currency' => 'PHP',
+                            'name' => 'Repair Job Final Payment',
+                            'quantity' => 1,
+                        ],
+                    ],
+                    'payment_method_types' => ['gcash', 'paymaya', 'card'],
+                    'description' => 'Repair final payment for ' . $invoice->invoice_number,
+                    'reference_number' => $invoice->invoice_number,
+                    'metadata' => [
+                        'invoice_id' => (string) $invoice->id,
+                        'repair_job_id' => (string) $repairJob->id,
+                        'vehicle_id' => (string) $repairJob->vehicle_id,
+                        'payment_type' => 'repair_final_payment',
+                    ],
+                ],
+            ],
+        ]);
+
+        Log::info('PayMongo repair final payment checkout created', [
+            'repair_job_id' => $repairJob->id,
+            'invoice_number' => $invoice->invoice_number,
+            'amount_due' => $amountDue,
+            'response_status' => $response->status(),
+        ]);
+
+        if ($response->failed()) {
+            return response()->json(['error' => 'Failed to initialize PayMongo gateway session.'], 500);
+        }
+
+        $sessionData = $response->json()['data'];
+        $checkoutUrl = $sessionData['attributes']['checkout_url'];
+        $paymongoSessionId = $sessionData['id'];
+
+        Payment::create([
+            'invoice_id' => $invoice->id,
+            'payment_method' => 'paymongo_checkout',
+            'type' => 'repair_final_payment',
+            'transaction_reference' => $paymongoSessionId,
+            'amount_paid' => $amountDue,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'checkout_url' => $checkoutUrl,
+            'checkout_session_id' => $paymongoSessionId,
+            'invoice_number' => $invoice->invoice_number,
+            'repair_job_id' => $repairJob->id,
+            'amount_paid' => $amountDue,
+            'total_amount' => (float) $invoice->total_amount,
+        ]);
+    }
+
     public function confirmCheckout(Request $request)
     {
         $request->validate([
@@ -372,7 +469,7 @@ class PayMongoController extends Controller
         return $this->fulfillReservationPayment($payment);
     }
 
-    private function fulfillRepairDownPayment(Payment $payment): array
+   private function fulfillRepairDownPayment(Payment $payment): array
     {
         return DB::transaction(function () use ($payment) {
             $payment->refresh();
@@ -386,14 +483,21 @@ class PayMongoController extends Controller
             ]);
 
             $newAmountDue = max(0, round((float) $invoice->amount_due - (float) $payment->amount_paid, 2));
+            $isFullyPaid = $newAmountDue <= 0;
 
             $invoice->update([
-                'status' => $newAmountDue <= 0 ? 'paid' : 'partially_paid',
+                'status' => $isFullyPaid ? 'paid' : 'partially_paid',
                 'amount_due' => $newAmountDue,
             ]);
 
             if ($repairJob && $repairJob->status === RepairJobStatus::Pending->value) {
                 $repairJob->update(['status' => RepairJobStatus::Confirmed->value]);
+            }
+
+            // Once the invoice is fully settled, the vehicle is ready for the
+            // customer to pick up.
+            if ($isFullyPaid && $vehicle) {
+                $vehicle->update(['status' => VehicleStatus::ReadyForRelease->value]);
             }
 
             if ($repairJob) {

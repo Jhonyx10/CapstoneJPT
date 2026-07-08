@@ -5,7 +5,8 @@ namespace App\Enums;
 enum InventoryActionStatus: string
 {
     case Restock = 'restock';
-    case Repair = 'repair_usage';
+    case RepairUsage = 'repair_usage';
+    case AddNewItem = 'new_item';
     case Waste = 'waste';
     case Adjustment = 'adjustment';
 }

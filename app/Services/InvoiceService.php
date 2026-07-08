@@ -39,7 +39,7 @@ class InvoiceService
         return Invoice::create($data);
     }
 
-    protected function createSupplemental(array $data): Invoice
+    public function createSupplemental(array $data): Invoice
     {
         $parent = Invoice::findOrFail($data['parent_id']);
 

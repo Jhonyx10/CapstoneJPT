@@ -61,9 +61,12 @@ Route::middleware(['auth:sanctum', 'web.token'])->group(function () {
     Route::get('/inventory/logs', [InventoryController::class, 'getInventoryLogs']);
     Route::get('/worker-types', [UserController::class, 'getWorkerTypes']);
     
+    Route::post('/repair-jobs/items', [InventoryController::class, 'workerItemsRepairLog']);
+    Route::post('/inventory/restock', [InventoryController::class, 'restock']);
     Route::post('/rate/repair-job', [RepairJobController::class, 'rateService']);
     Route::post('/create/worker-type', [UserController::class, 'createWorkerType']);
     Route::post('/paymongo/checkout', [PayMongoController::class, 'createCheckoutSession']);
     Route::post('/paymongo/repair-checkout', [PayMongoController::class, 'createRepairDownPaymentCheckout']);
     Route::post('/paymongo/confirm', [PayMongoController::class, 'confirmCheckout']);
+    Route::post('/paymongo/repair-final-checkout', [PayMongoController::class, 'createRepairFinalPaymentCheckout']);
 });
