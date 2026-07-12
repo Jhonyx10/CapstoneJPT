@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\Public\PublicBookingController;
+use App\Http\Controllers\Api\Payment\WalkInPaymentController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -24,6 +26,10 @@ Route::get('/user', function (Request $request) {
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/paymongo/webhook', [PayMongoController::class, 'handleWebhook']);
+
+Route::post('/public/booking', [PublicBookingController::class, 'store']);
+Route::get('/public/services', [PublicBookingController::class, 'getServices']);
+Route::get('/public/track-booking/{reference_number}', [PublicBookingController::class, 'trackRepairBooking']);
 
 Route::middleware(['auth:sanctum', 'web.token'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -69,4 +75,5 @@ Route::middleware(['auth:sanctum', 'web.token'])->group(function () {
     Route::post('/paymongo/repair-checkout', [PayMongoController::class, 'createRepairDownPaymentCheckout']);
     Route::post('/paymongo/confirm', [PayMongoController::class, 'confirmCheckout']);
     Route::post('/paymongo/repair-final-checkout', [PayMongoController::class, 'createRepairFinalPaymentCheckout']);
+    Route::post('/payments/walk-in', WalkInPaymentController::class);
 });

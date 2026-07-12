@@ -50,6 +50,14 @@ class VehicleRequest extends FormRequest
             ],
             'service_items.*' => 'array',
             'service_items.*.*' => 'exists:inventories,id',
+            'customer_information_id' => 'nullable|exists:customer_information,id',
+
+            // Optional — public bookings from customers without the mobile app
+            // may not include any of these.
+            'first_name' => 'nullable|string',
+            'last_name' => 'nullable|string',
+            'email' => 'nullable|email',
+            'phone_number' => 'nullable|string',
         ];
     }
 

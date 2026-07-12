@@ -12,112 +12,133 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Enums\RepairJobStatus;
 use App\Enums\InvoiceType;
+use App\Models\CustomerInformation;
 
 class VehicleService
 {
    public function registerVehicleWithJob(array $data)
-{
-    return DB::transaction(function () use ($data) {
-        $status = VehicleStatus::from($data['status']);
+    {
+        return DB::transaction(function () use ($data) {
+            $status = VehicleStatus::from($data['status']);
 
-        $vehicle = Vehicle::create([
-            'user_id'        => auth()->id(),
-            'brand'          => $data['brand'],
-            'model'          => $data['model'],
-            'body_type'      => $data['body_type'],
-            'engine_type'    => $data['engine_type'],
-            'transmission'   => $data['transmission'],
-            'chassis_number' => "CHASSIS-" . $data['chassis_number'],
-            'plate_number'   => "PLATE-" . $data['plate_number'],
-            'image'          => $this->storeImage($data['image'] ?? null),
-            'status'         => $status,
-        ]);
+            $vehicle = Vehicle::create([
+                'user_id'        => auth()->id(),
+                'brand'          => $data['brand'],
+                'model'          => $data['model'],
+                'body_type'      => $data['body_type'],
+                'engine_type'    => $data['engine_type'],
+                'transmission'   => $data['transmission'],
+                'chassis_number' => "CHASSIS-" . $data['chassis_number'],
+                'plate_number'   => "PLATE-" . $data['plate_number'],
+                'image'          => $this->storeImage($data['image'] ?? null),
+                'status'         => $status,
+            ]);
 
-        if (!$status->requiresRepairFlow()) {
-            return $vehicle;
-        }
+        $customerInformationId = $data['customer_information_id'] ?? null;
 
-        $repairJob = RepairJob::create([
-            'vehicle_id' => $vehicle->id,
-            'status'     => RepairJobStatus::Pending,
-        ]);
+        if (!$customerInformationId && $this->hasCustomerInformation($data)) {
+                $customer = CustomerInformation::create([
+                    'first_name'   => $data['first_name'] ?? null,
+                    'last_name'    => $data['last_name'] ?? null,
+                    'email'        => $data['email'] ?? null,
+                    'phone_number' => $data['phone_number'] ?? null,
+                ]);
 
-        \Log::info('service_ids received:', ['data' => $data['service_ids'] ?? 'NOT SET']);
-        \Log::info('service_items received:', ['data' => $data['service_items'] ?? 'NOT SET']);
-
-        $totalServicesCost = 0.00;
-        if (!empty($data['service_ids'])) {
-            $services = ServiceModel::whereIn('id', $data['service_ids'])->get();
-
-            $pivotData = [];
-            foreach ($services as $service) {
-                $pivotData[$service->id] = [
-                    'actual_price' => $service->base_price,
-                    'status'       => 'pending',
-                ];
-                $totalServicesCost += $service->base_price;
+                $customerInformationId = $customer->id;
             }
-            $repairJob->services()->attach($pivotData);
 
-            // Fetch the attached pivot records to get their IDs
-            $attachedServices = $repairJob->services()->withPivot('id')->whereIn('service_id', $data['service_ids'])->get();
-            \Log::info('attached services count:', ['count' => $attachedServices->count()]);
-            
-            $serviceItemsData = $data['service_items'] ?? [];
-            
-            $inventoryIds = [];
-            foreach ($serviceItemsData as $serviceId => $itemIds) {
-                $inventoryIds = array_merge($inventoryIds, $itemIds);
+
+            if (!$status->requiresRepairFlow()) {
+                return $vehicle;
             }
-            $inventories = \App\Models\Inventory::whereIn('id', $inventoryIds)->get()->keyBy('id');
-            \Log::info('inventories fetched:', ['count' => $inventories->count(), 'keys' => $inventories->keys()]);
 
-            $itemsToInsert = [];
-            foreach ($attachedServices as $service) {
-                $serviceId = $service->id;
-                $pivotId = $service->pivot->id;
-                $selectedItems = $serviceItemsData[$serviceId] ?? [];
-                \Log::info("processing service {$serviceId}", ['pivotId' => $pivotId, 'selectedItems' => $selectedItems]);
+            $repairJob = RepairJob::create([
+                'vehicle_id' => $vehicle->id,
+                'status'     => RepairJobStatus::Pending,
+                'customer_information_id' => $customerInformationId,
+            ]);
+
+            $totalServicesCost = 0.00;
+            if (!empty($data['service_ids'])) {
+                $services = ServiceModel::whereIn('id', $data['service_ids'])->get();
+
+                $pivotData = [];
+                foreach ($services as $service) {
+                    $pivotData[$service->id] = [
+                        'actual_price' => $service->base_price,
+                        'status'       => 'pending',
+                    ];
+                    $totalServicesCost += $service->base_price;
+                }
+                $repairJob->services()->attach($pivotData);
+
+                // Fetch the attached pivot records to get their IDs
+                $attachedServices = $repairJob->services()->withPivot('id')->whereIn('service_id', $data['service_ids'])->get();
                 
-                foreach ($selectedItems as $itemId) {
-                    if (isset($inventories[$itemId])) {
-                        $inv = $inventories[$itemId];
-                        $itemsToInsert[] = [
-                            'repair_job_service_id' => $pivotId,
-                            'inventory_id' => $itemId,
-                            'unit_price' => $inv->unit_price,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
+                $serviceItemsData = $data['service_items'] ?? [];
+                
+                $inventoryIds = [];
+                foreach ($serviceItemsData as $serviceId => $itemIds) {
+                    $inventoryIds = array_merge($inventoryIds, $itemIds);
+                }
+                $inventories = \App\Models\Inventory::whereIn('id', $inventoryIds)->get()->keyBy('id');
+
+                $itemsToInsert = [];
+                foreach ($attachedServices as $service) {
+                    $serviceId = $service->id;
+                    $pivotId = $service->pivot->id;
+                    $selectedItems = $serviceItemsData[$serviceId] ?? [];
+                    
+                    foreach ($selectedItems as $itemId) {
+                        if (isset($inventories[$itemId])) {
+                            $inv = $inventories[$itemId];
+                            $itemsToInsert[] = [
+                                'repair_job_service_id' => $pivotId,
+                                'inventory_id' => $itemId,
+                                'unit_price' => $inv->unit_price,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ];
+                        }
                     }
                 }
+                
+                if (!empty($itemsToInsert)) {
+                    \App\Models\RepairJobServiceItem::insert($itemsToInsert);
+                }
             }
-            
-            \Log::info('itemsToInsert:', ['data' => $itemsToInsert]);
-            if (!empty($itemsToInsert)) {
-                \App\Models\RepairJobServiceItem::insert($itemsToInsert);
-            }
-        }
 
-        $totalAmount = $totalServicesCost;
+            $totalAmount = $totalServicesCost;
 
-        $repairJob->invoice()->create([
-            'invoice_number' => 'INV-' . strtoupper(uniqid()),
-            'type' => InvoiceType::Estimated,
-            'labor_cost'     => $totalServicesCost,
-            'material_cost'  => 0.00,
-            'tax'            => 0.00,
-            'total_amount'   => $totalAmount,
-            'amount_due'     => $totalAmount,
-            'status'         => 'unpaid',
-            'notes'          => 'Initial estimate. Final amount is subject to change based on actual materials used, fluid capacities, or additional component requirements discovered during teardown',
-        ]);
+            $repairJob->invoice()->create([
+                'invoice_number' => 'INV-' . strtoupper(uniqid()),
+                'type' => InvoiceType::Estimated,
+                'labor_cost'     => $totalServicesCost,
+                'material_cost'  => 0.00,
+                'tax'            => 0.00,
+                'total_amount'   => $totalAmount,
+                'amount_due'     => $totalAmount,
+                'status'         => 'unpaid',
+                'notes'          => 'Initial estimate. Final amount is subject to change based on actual materials used, fluid capacities, or additional component requirements discovered during teardown',
+            ]);
 
-        $repairJob->update(['total_estimated_cost' => $totalAmount]);
+            $repairJob->update(['total_estimated_cost' => $totalAmount]);
 
-        return $vehicle->load('repairJobs.invoice');
-    });
-}
+            return [
+                'message'          => "Booking submitted! Your reference number is {$repairJob->reference_number}.",
+                'reference_number' => $repairJob->reference_number,
+                'vehicle'          => $vehicle->load('repairJobs.invoice'),
+            ];
+        });
+    }
+
+    private function hasCustomerInformation(array $data): bool
+    {
+        return !empty($data['first_name'])
+            || !empty($data['last_name'])
+            || !empty($data['email'])
+            || !empty($data['phone_number']);
+    }
 
     public function getAll()
     {

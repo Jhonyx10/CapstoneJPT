@@ -3,15 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class RepairJob extends Model
 {
     protected $table='repair_jobs';
 
     protected $fillable = [
-        'vehicle_id', 'status', 'total_estimated_cost', 'start_date', 'end_date'
+        'vehicle_id','customer_information_id', 'status', 'total_estimated_cost', 'start_date', 'end_date', 'reference_number'    
     ];
 
+    protected static function booted()
+    {
+        // Automatically runs right before a new RepairJob is saved to the database
+        static::creating(function ($repairJob) {
+            do {
+                // Generates an uppercase tracking code like: JAP-X87B2K9A
+                $code = 'JAP-' . strtoupper(Str::random(8));
+            } while (self::where('reference_number', $code)->exists()); // Double check uniqueness
+
+            $repairJob->reference_number = $code;
+        });
+    }
+    
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
@@ -46,5 +60,10 @@ class RepairJob extends Model
     public function rating()
     {
         return $this->hasOne(Rating::class, 'repair_id');
+    }
+
+    public function customerInformation()
+    {
+        return $this->belongsTo(CustomerInformation::class, 'customer_information_id');
     }
 }

@@ -10,15 +10,38 @@ use App\Events\RepairJobStatusUpdated;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class RepairJobService
 {
     public function getAll() {
-        return RepairJob::with('vehicle', 'services')->get();
+        return RepairJob::with('vehicle', 'services')->orderByDesc('created_at')->get();
     }
 
+    public function trackRepairBooking(string $referenceNumber)
+{
+    Log::info('Tracking repair booking', ['reference_number' => $referenceNumber]);
+
+    $repairJob = RepairJob::with([
+        'vehicle',
+        'services',
+        'customerInformation',
+        'repairJobServices.items.inventory'
+        ])
+        ->where('reference_number', $referenceNumber)
+        ->first();
+
+    if (!$repairJob) {
+        Log::warning('Repair job not found for reference number', ['reference_number' => $referenceNumber]);
+    } else {
+        Log::info('Repair job found', ['id' => $repairJob->id, 'reference_number' => $referenceNumber]);
+    }
+
+    return $repairJob;
+}
+
     public function getRepairJobs() {
-        $jobs = RepairJob::with('vehicle', 'services.requiredWorkerType', 'invoice')
+        $jobs = RepairJob::with('vehicle', 'services.requiredWorkerType', 'invoice', 'customerInformation')
                         ->whereNotIn('status', [
                             RepairJobStatus::Pending,
                             RepairJobStatus::Completed,
@@ -36,6 +59,7 @@ class RepairJobService
             'services.requiredWorkerType',
             'invoice',
             'logs.operator',
+            'customerInformation'
         ])
             ->whereIn('status', [
                 RepairJobStatus::Completed->value,
@@ -49,7 +73,7 @@ class RepairJobService
 
     public function getCustomerRepairJobs($userId)  
     {
-        $jobs = RepairJob::with(['vehicle', 'services', 'invoice', 'rating'])
+        $jobs = RepairJob::with(['vehicle', 'services', 'invoice', 'rating', 'customerInformation'])
             ->whereHas('vehicle', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
@@ -161,7 +185,8 @@ class RepairJobService
             'services.requiredWorkerType',
             'invoice',
             'rating',
-            'repairJobServices.items.inventory'
+            'repairJobServices.items.inventory',
+            'customerInformation'
         ])->find($id);
         
         $this->hydrateServiceWorkers($job);

@@ -8,7 +8,7 @@ class TransactionService
 {
     public function getAll()
     {
-        return Payment::with('invoice')->get();
+        return Payment::with('invoice')->orderByDesc('created_at')->get();
     }
 
     public function getById($id)
